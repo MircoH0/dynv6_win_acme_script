@@ -67,7 +67,6 @@ function create_record
         "data"=$rec_data;
         }
     $request_body=$request_body | ConvertTo-Json -Compress
-    echo $request_body
     Write-Output "Createing $rec_name ..."
     Invoke-RestMethod -Uri "$dynv6_root/$zoneid/records" -Method Post -Headers $dynv6_headers -Body $request_body -ContentType 'application/json'
 }
