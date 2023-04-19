@@ -1,18 +1,30 @@
-﻿param(
+param(
     [string]$op,
     [string]$zone,
     [string]$name,
-    [string]$token
+    [string]$token,
+    [string]$recordtype='TXT'
 )
 [string]$dynv6_httpkey
 [string]$dynv6_root="https://dynv6.com/api/v2/zones"
-$type='TXT'
+
 $dynv6_headers
+
+function cut_zone
+{
+    param([string]$zone)
+    if ($zone.Split(".").Count -gt 3){
+        $cut_zone=$zone.Split(".")[-3]+'.'+$zone.Split(".")[-2]+'.'+$zone.Split(".")[-1]
+        return $cut_zone
+    }else{
+        return $zone
+    }
+}
 
 function cut_name
 {
     param([string]$name)
-    return $name.split(".")[0]
+    return $name.Substring(0,$name.Length-$zone.Length-1)
 }
 
 function get_zoneid
@@ -24,6 +36,7 @@ function get_zoneid
             return $zoneitem.id
         }
     }
+    Write-Error "Can't find zone: $zone"
 }
 
 function get_recordid
@@ -48,13 +61,15 @@ function create_record
         [string]$type,
         [int]$zoneid
     )
-    $request_dict=@{
-        name=$rec_name;
-        data=$rec_data;
-        type=$type
-    }
-    Write-Output "Creating $rec_name ..."
-    Invoke-RestMethod -Uri "$dynv6_root/$zoneid/records" -Method Post -Headers $dynv6_headers -Body $request_dict
+    $request_body=@{
+        "type"=$type;
+        "name"=$rec_name;
+        "data"=$rec_data;
+        }
+    $request_body=$request_body | ConvertTo-Json -Compress
+    echo $request_body
+    Write-Output "Createing $rec_name ..."
+    Invoke-RestMethod -Uri "$dynv6_root/$zoneid/records" -Method Post -Headers $dynv6_headers -Body $request_body -ContentType 'application/json'
 }
 
 function delete_record
@@ -75,12 +90,13 @@ if ((Test-Path .\dynv6_key.txt) -eq $True){
     exit
 }
 
+$zone=cut_zone $zone
 $name=cut_name $name
 $zoneid=get_zoneid $zone
 
 if ($op -eq "create"){
     if ($zoneid -ne $null){
-        create_record $name $token $type $zoneid
+        create_record $name $token $recordtype $zoneid
     }
 }elseif ($op -eq "delete"){
     if ($zoneid -ne $null){
