@@ -6,9 +6,8 @@ param(
     [string]$recordtype='TXT'
 )
 [string]$dynv6_httpkey
-[string]$dynv6_root="https://dynv6.com/api/v2/zones"
-
-$dynv6_headers
+[string]$dynv6_apiroot="https://dynv6.com/api/v2/zones"
+[object]$dynv6_headers
 
 function cut_zone
 {
@@ -30,7 +29,7 @@ function cut_name
 function get_zoneid
 {
     param([string]$zone)
-    $zone_result=Invoke-RestMethod -Uri $dynv6_root -Headers $dynv6_headers
+    $zone_result=Invoke-RestMethod -Uri $dynv6_apiroot -Headers $dynv6_headers
     foreach ($zoneitem in $zone_result){
         if ($zoneitem.name -eq $zone){
             return $zoneitem.id
@@ -45,7 +44,7 @@ function get_recordid
         [string]$zoneid,
         [string]$rec_name
     )
-    $record_result=Invoke-RestMethod -Uri $dynv6_root'/'$zoneid'/'records -Headers $dynv6_headers
+    $record_result=Invoke-RestMethod -Uri $dynv6_apiroot'/'$zoneid'/'records -Headers $dynv6_headers
     foreach ($recorditem in $record_result){
         if ($recorditem.name -eq $rec_name){
             return $recorditem.id
@@ -68,7 +67,7 @@ function create_record
         }
     $request_body=$request_body | ConvertTo-Json -Compress
     Write-Output "Createing $rec_name ..."
-    Invoke-RestMethod -Uri "$dynv6_root/$zoneid/records" -Method Post -Headers $dynv6_headers -Body $request_body -ContentType 'application/json'
+    Invoke-RestMethod -Uri "$dynv6_apiroot/$zoneid/records" -Method Post -Headers $dynv6_headers -Body $request_body -ContentType 'application/json'
 }
 
 function delete_record
@@ -78,7 +77,7 @@ function delete_record
         [int]$zoneid
     )
     Write-Output "Deleteing $name ..."
-    Invoke-RestMethod -Uri "$dynv6_root/$zoneid/records/$rec_id" -Method Delete -Headers $dynv6_headers
+    Invoke-RestMethod -Uri "$dynv6_apiroot/$zoneid/records/$rec_id" -Method Delete -Headers $dynv6_headers
 }
 
 if ((Test-Path .\dynv6_key.txt) -eq $True){
